@@ -10,10 +10,10 @@ Policier consists of two big sections:
 class Superuser < Policier::Condition
     self.collector = Struct.new(:authorized_at)
 
-    # This is the main chekc, it's happenuing always awhen any policy
+    # This is the main check, it's happenuing always when any policy
     # is applied against the context (from controller or GraphQL)
     #
-    # If it's veritied condition is activated and causes extension
+    # If it's veritied, condition is activated and causes extension
     # of access rights (see below)
     verify_with do |context|
         fail! if context[:user].blank?
