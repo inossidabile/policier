@@ -7,7 +7,7 @@ Policier consists of two big sections:
 
 ```ruby
 # Activates whe current user is super
-class IsSuperuser < Policier::Condition
+class Superuser < Policier::Condition
     self.collector = Struct.new(:authorized_at)
 
     # This is the main chekc, it's happenuing always awhen any policy
@@ -45,19 +45,19 @@ class PersonPolicy
     scope(Person) do
         # Collector argument allows you to propagate values you had during
         # condition verification into actual policy
-        allow @is_superadmin.it_wasnt_thursday(2.weeks.ago) do |collector|
+        allow @superuser.and_it_wasnt_thursday(2.weeks.ago) do |collector|
             to where(id: 5000)
             to where(id: 6000)
         end
 
         # This syntax allows you to combine several conditions and it runs
         # if  any of them activated for eahc of them
-        allow @is_superadmin | @another_condition do |collector|
+        allow @superuser | @another_condition do |collector|
             to where('id < 1000')
         end
 
         # Thirsdays are the best
-        allow @is_superadmin.it_was_thursday(2.weeks.ago) do |colledctor|
+        allow @superuser.and_it_was_thursday(2.weeks.ago) do |colledctor|
             to all
         end
     end
