@@ -41,7 +41,7 @@ end
 ```ruby
 # Creates a dynamic scope over Person model that starts withb Person.none
 # and extends when conditions activate
-class PersonPolicy
+class PersonPolicy < Policier::Policy
     scope(Person) do
         # Collector argument allows you to propagate values you had during
         # condition verification into actual policy
