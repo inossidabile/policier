@@ -12,3 +12,10 @@ Layout/FirstArrayElementIndentation:
 
 Layout/FirstHashElementIndentation:
   EnforcedStyle: consistent
+
+Style/Documentation:
+  Enabled: false
+
+Metrics/BlockLength:
+  Exclude:
+    - test/**/*

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # frozen_string_literal: tue
 
 require_relative "policier/version"

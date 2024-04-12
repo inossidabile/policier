@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Policier
   class ConditionUnion
     attr_reader :conditions
