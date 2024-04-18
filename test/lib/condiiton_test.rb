@@ -4,19 +4,15 @@ require "test_helper"
 
 module Policier
   class ConditionTest < Minitest::Spec
-    class Subject < Condition
-      self.collector = Struct.new(:foo, :bar)
+    class ConditionA < Condition
+      self.data_class = Struct.new(:foo, :bar)
 
-      verify_with do |context|
-        fail! unless context.key?(:foo)
-
-        collector[:foo] = context[:foo]
+      verify_with do
+        fail! unless payload.key?(:foo)
       end
 
       also_ensure(:has_bar) do |data|
         fail! unless data.key?(:bar)
-
-        collector[:bar] = data[:bar]
       end
 
       also_ensure(:has_baz) do |data|
@@ -24,93 +20,117 @@ module Policier
       end
     end
 
+    class ConditionB < Condition
+      verify_with do
+        depend_on! ConditionA
+      end
+    end
+
     def test_name
-      assert_equal :policier_condition_test_subject, Subject.handle
+      assert_equal :policier_condition_test_condition_a, ConditionA.handle
     end
 
     describe "without ensure" do
       def test_successful_condition
-        context = { foo: "bar", bar: :baz }
-        condition = Subject.new(context)
+        Context.scope({ foo: "bar", bar: :baz }) do
+          condition = ConditionA.new
 
-        assert condition.verify
-        assert !condition.failed?
-        assert_equal context, condition.context
-        assert_equal %i[foo bar], condition.collector.members
+          assert condition.verify
+          assert !condition.failed?
+          assert_equal Context.current.payload, condition.payload
+          assert_equal %i[foo bar], condition.data.members
+        end
       end
 
       def test_failed_condition
-        context = {}
-        condition = Subject.new(context)
+        Context.scope({}) do
+          condition = ConditionA.new
 
-        assert condition.verify
-        assert condition.failed?
-        assert_equal context, condition.context
-        assert_equal %i[foo bar], condition.collector.members
+          assert condition.verify
+          assert condition.failed?
+          assert_equal Context.current.payload, condition.payload
+          assert_equal %i[foo bar], condition.data.members
+        end
       end
     end
 
     describe "with one ensure" do
       def test_successful_condition
-        context = { foo: "bar", bar: :baz }
-        condition = Subject.new(context)
+        Context.scope foo: "bar", bar: :baz do
+          condition = ConditionA.new
 
-        assert condition.verify.and_has_bar(bar: "foo")
-        assert !condition.failed?
-        assert_equal context, condition.context
-        assert_equal %i[foo bar], condition.collector.members
+          assert condition.verify.and_has_bar(bar: "foo")
+          assert !condition.failed?
+          assert_equal Context.current.payload, condition.payload
+          assert_equal %i[foo bar], condition.data.members
+        end
       end
 
       def test_failed_condition
-        context = {}
-        condition = Subject.new(context)
+        Context.scope({}) do
+          condition = ConditionA.new
 
-        assert condition.verify.and_has_bar({})
-        assert condition.failed?
-        assert_equal context, condition.context
-        assert_equal %i[foo bar], condition.collector.members
+          assert condition.verify.and_has_bar({})
+          assert condition.failed?
+          assert_equal Context.current.payload, condition.payload
+          assert_equal %i[foo bar], condition.data.members
+        end
+      end
+
+      def test_failed_condition_on_dependent
+        Context.scope({}) do
+          condition = ConditionB.new
+
+          assert condition.verify
+          assert condition.failed?
+          assert_equal Context.current.payload, condition.payload
+        end
       end
     end
 
     describe "with two ensure" do
       def test_successful_condition
-        context = { foo: "bar", bar: :baz }
-        condition = Subject.new(context)
+        Context.scope({ foo: "bar", bar: :baz }) do
+          condition = ConditionA.new
 
-        assert condition.verify.and_has_bar(bar: "foo").and_has_baz(baz: "foo")
-        assert !condition.failed?
-        assert_equal context, condition.context
-        assert_equal %i[foo bar], condition.collector.members
+          assert condition.verify.and_has_bar(bar: "foo").and_has_baz(baz: "foo")
+          assert !condition.failed?
+          assert_equal Context.current.payload, condition.payload
+          assert_equal %i[foo bar], condition.data.members
+        end
       end
 
       def test_failed_condition
-        context = {}
-        condition = Subject.new(context)
+        Context.scope({}) do
+          condition = ConditionA.new
 
-        assert condition.verify.and_has_bar({})
-        assert condition.failed?
-        assert_equal context, condition.context
-        assert_equal %i[foo bar], condition.collector.members
+          assert condition.verify.and_has_bar({})
+          assert condition.failed?
+          assert_equal Context.current.payload, condition.payload
+          assert_equal %i[foo bar], condition.data.members
+        end
       end
 
       def test_failed_condition_on_second_step
-        context = {}
-        condition = Subject.new(context)
+        Context.scope({}) do
+          condition = ConditionA.new
 
-        assert condition.verify.and_has_bar({}).and_has_baz(baz: "foo")
-        assert condition.failed?
-        assert_equal context, condition.context
-        assert_equal %i[foo bar], condition.collector.members
+          assert condition.verify.and_has_bar({}).and_has_baz(baz: "foo")
+          assert condition.failed?
+          assert_equal Context.current.payload, condition.payload
+          assert_equal %i[foo bar], condition.data.members
+        end
       end
 
       def test_failed_condition_on_third_step
-        context = {}
-        condition = Subject.new(context)
+        Context.scope({}) do
+          condition = ConditionA.new
 
-        assert condition.verify.and_has_bar(bar: "foo").and_has_baz({})
-        assert condition.failed?
-        assert_equal context, condition.context
-        assert_equal %i[foo bar], condition.collector.members
+          assert condition.verify.and_has_bar(bar: "foo").and_has_baz({})
+          assert condition.failed?
+          assert_equal Context.current.payload, condition.payload
+          assert_equal %i[foo bar], condition.data.members
+        end
       end
     end
   end

@@ -5,19 +5,51 @@ require "dry/inflector"
 require_relative "condition_union"
 
 module Policier
+  module ConditionResolve
+    def resolve
+      Context.current.ensure_condiiton(self)
+    end
+
+    def union
+      resolve.union
+    end
+
+    def |(other)
+      union | other
+    end
+  end
+
   class Condition
     class FailedException < StandardError; end
 
-    attr_reader :context, :collector
+    extend ConditionResolve
 
-    def initialize(context)
-      @context = context
-      @collector = (self.class.collector || Struct.new).new
+    class << self
+      attr_accessor :data_class
+    end
+
+    attr_reader :data
+
+    def initialize
+      @context = Context.current
+      @data = @context.init_data(self.class, self.class.data_class) if self.class.data_class.present?
       @failed = false
+      @executed = false
+    end
+
+    def depend_on!(condition_klass)
+      condition = condition_klass.resolve
+      return fail! if condition.failed?
+
+      condition.data
     end
 
     def fail!
       raise FailedException
+    end
+
+    def payload
+      @context.payload
     end
 
     def failed?
@@ -25,19 +57,25 @@ module Policier
     end
 
     def verify
-      @failed ||= !instance_exec_with_failures(@context, &self.class.verification_block)
+      return self if @executed
+
+      @failed ||= !instance_exec_with_failures(&self.class.verification_block)
+      @executed = true
       self
     end
 
-    def instance_exec_with_failures(data, &block)
-      instance_exec(data, &block)
+    def override!(failing: false, data_replacement: {})
+      @failed = failing
+      @executed = true
+      data_replacement.each { |k, v| data[k] = v }
+      self
+    end
+
+    def instance_exec_with_failures(*args, &block)
+      instance_exec(*args, &block)
       true
     rescue FailedException
       false
-    end
-
-    def |(other)
-      union | other
     end
 
     def union

@@ -28,21 +28,27 @@ module Policier
 
     describe "merging" do
       def test_one_condition_unions
-        result = ConditionA.new({}).verify.union
-        _(result).must_be_instance_of ConditionUnion
-        _(result.conditions.length).must_equal 1
+        Context.scope({}) do
+          result = ConditionA.union
+          _(result).must_be_instance_of ConditionUnion
+          _(result.conditions.length).must_equal 1
+        end
       end
 
       def test_two_condition_union
-        result = ConditionA.new({}).verify | ConditionB.new({}).verify
-        _(result).must_be_instance_of ConditionUnion
-        _(result.conditions.length).must_equal 2
+        Context.scope({}) do
+          result = ConditionA | ConditionB
+          _(result).must_be_instance_of ConditionUnion
+          _(result.conditions.length).must_equal 2
+        end
       end
 
       def test_three_condition_union
-        result = ConditionA.new({}).verify | ConditionB.new({}).verify | ConditionC.new({}).verify
-        _(result).must_be_instance_of ConditionUnion
-        _(result.conditions.length).must_equal 2
+        Context.scope({}) do
+          result = ConditionA | ConditionB | ConditionC
+          _(result).must_be_instance_of ConditionUnion
+          _(result.conditions.length).must_equal 3
+        end
       end
     end
   end

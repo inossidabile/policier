@@ -20,14 +20,16 @@ module Policier
     end
 
     def test_scope_union_merging
-      scope_union = ScopeUnion.new(Model)
-      scope_union.to Model.where(foo: "foo")
-      scope_union.to Model.where(bar: "bar")
-      scope_union.to Model.where(baz: "baz")
+      Context.scope({}) do
+        scope_union = ScopeUnion.new(Model)
+        scope_union.scope Model.where(foo: "foo")
+        scope_union.scope Model.where(bar: "bar")
+        scope_union.scope Model.where(baz: "baz")
 
-      assert_equal 'SELECT "models".* FROM "models" ' +
-                   %q[WHERE ("models"."foo" = 'foo' OR "models"."bar" = 'bar' OR "models"."baz" = 'baz')],
-                   scope_union.scope.to_sql
+        assert_equal 'SELECT "models".* FROM "models" ' +
+                     %q[WHERE ("models"."foo" = 'foo' OR "models"."bar" = 'bar' OR "models"."baz" = 'baz')],
+                     scope_union.relation.to_sql
+      end
     end
   end
 end

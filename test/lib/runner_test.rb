@@ -29,19 +29,8 @@ module Policier
     class Model < ActiveRecord::Base
     end
 
-    def build_runner(context = {})
-      Policier::Runner.new(context, Model, condition_classes: [SubjectA, SubjectB, SubjectC])
-    end
-
-    def test_initialize
-      runner = build_runner
-
-      _(runner.instance_variables).must_equal(
-        %i[@scope_union @policier_runner_test_subject_a @policier_runner_test_subject_b
-           @policier_runner_test_subject_c]
-      )
-
-      _(runner.instance_variable_get(:@policier_runner_test_subject_c)).must_be_instance_of(SubjectC)
+    def build_runner(_context = {})
+      Policier::Runner.new
     end
   end
 end

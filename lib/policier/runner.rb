@@ -7,13 +7,17 @@ require_relative "condition_union"
 module Policier
   class Runner
     module DSL
+      def self.extended(base)
+        attr_reader :model
+      end
+
       def scope(model, &block)
         @model = model
         @scope = block
       end
 
-      def run(context, condition_classes: nil)
-        runner = Runner.new(context, @model, condition_classes: condition_classes)
+      def run
+        runner = Runner.new(self)
         runner.instance_eval(&@scope)
         runner.scope_union
       end
@@ -21,18 +25,16 @@ module Policier
 
     attr_reader :scope_union
 
-    def initialize(context, model, condition_classes: nil)
-      @scope_union = ScopeUnion.new(model)
-
-      condition_classes ||= Condition.all
-      condition_classes.each do |condition_class|
-        instance_variable_set("@#{condition_class.handle}", condition_class.new(context).verify)
-      end
+    def initialize(policy)
+      @policy = policy
+      @scope_union = ScopeUnion.new(policy.model)
     end
 
     def allow(condition_union, &block)
       condition_union.union.conditions.each do |condition|
-        @scope_union.instance_exec(condition.collector, condition, &block)
+        next if condition.failed?
+
+        @scope_union.instance_exec(condition, &block)
       end
     end
   end
