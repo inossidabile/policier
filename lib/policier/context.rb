@@ -7,7 +7,8 @@ require_relative "condition_union"
 module Policier
   class Context
     class NotInScopeException < StandardError; end
-    class AlreadyInScope < StandardError; end
+    class ScopeStartedEvaluation < StandardError; end
+    class DuplicatePayloadKey < StandardError; end
 
     THREAD_CURRENT_KEY = :policier_context_current
 
@@ -18,10 +19,19 @@ module Policier
         Thread.current[THREAD_CURRENT_KEY]
       end
 
-      def scope(payload)
-        raise "Already in scope" if Thread.current[THREAD_CURRENT_KEY].present?
+      def scope(payload = {})
+        if Thread.current[THREAD_CURRENT_KEY].present? && Context.current.evaluation_started?
+          raise ScopeStartedEvaluation
+        end
 
-        Thread.current[THREAD_CURRENT_KEY] = new(payload)
+        if Thread.current[THREAD_CURRENT_KEY].blank?
+          Thread.current[THREAD_CURRENT_KEY] = new(payload)
+        else
+          raise ScopeStartedEvaluation if Context.current.evaluation_started? && payload.any?
+
+          Context.current.payload.merge!(payload)
+        end
+
         yield
       ensure
         Thread.current[THREAD_CURRENT_KEY] = nil
@@ -47,6 +57,10 @@ module Policier
           data_replacement: data_replacement
         )
       end
+    end
+
+    def evaluation_started?
+      @conditions.present?
     end
 
     def ensure_condiiton(condition_class)

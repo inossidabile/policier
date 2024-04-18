@@ -7,7 +7,7 @@ require_relative "condition_union"
 module Policier
   class Runner
     module DSL
-      def self.extended(base)
+      def self.extended(_base)
         attr_reader :model
       end
 

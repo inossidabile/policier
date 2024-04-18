@@ -7,23 +7,25 @@ Policier consists of two big sections:
 
 ```ruby
 # Activates whe current user is super
-class Superuser < Policier::Condition
-    self.collector = Struct.new(:authorized_at)
+class SuperuserCondition < Policier::Condition
+    self.data = Struct.new(:authorized_at)
 
     # This is the main check, it's happenuing always when any policy
     # is applied against the context (from controller or GraphQL)
     #
     # If it's veritied, condition is activated and causes extension
     # of access rights (see below)
-    verify_with do |context|
-        fail! if context[:user].blank?
-        fail! unless context[:user].is_superadmin
+    verify_with do
+        fail! if payload[:user].blank?
+        fail! unless payload[:user].is_superadmin
 
-        collector[:authorized_at] = context[:user].authorized_at
+        # This is not very useful since data is located next to payload
+        # so this is only here as an example
+        data[:authorized_at] = context[:user].authorized_at
     end
 
     # Additional check that can be quuickly used on top of verified
-    # condition to make conditions anagement more flexible. 
+    # condition to make conditions anagement more flexible.
     # Think of it as of a Trait in FactoryBot
     also_ensure(:it_wasnt_thursday) do |important_date|
         fail! if important_date.wday == 3
@@ -41,24 +43,25 @@ end
 ```ruby
 # Creates a dynamic scope over Person model that starts withb Person.none
 # and extends when conditions activate
+
 class PersonPolicy < Policier::Policy
     scope(Person) do
         # Collector argument allows you to propagate values you had during
         # condition verification into actual policy
-        allow @superuser.and_it_wasnt_thursday(2.weeks.ago) do |collector|
-            to where(id: 5000)
-            to where(id: 6000)
+        allow SuperuserCondition.and_it_wasnt_thursday(2.weeks.ago)
+            scope where(id: 5000)
+            scope where(id: 6000)
         end
 
         # This syntax allows you to combine several conditions and it runs
         # if  any of them activated for eahc of them
-        allow @superuser | @another_condition do |collector|
-            to where('id < 1000')
+        allow SuperuserCondition | AnotherCnndition
+            scope where('id < 1000')
         end
 
         # Thirsdays are the best
-        allow @superuser.and_it_was_thursday(2.weeks.ago) do |colledctor|
-            to all
+        allow SuperuserCondition.and_it_was_thursday(2.weeks.ago)
+            scope all
         end
     end
 end
