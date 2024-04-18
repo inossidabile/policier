@@ -10,10 +10,8 @@ Gem::Specification.new do |spec|
 
   spec.summary = "The policier"
 
-  spec.homepage = "https://staal.io"
+  spec.homepage = "https://github.com/inossidabile/policier"
   spec.required_ruby_version = ">= 3.0.0"
-
-  spec.metadata["allowed_push_host"] = "TODO: Set to your gem server 'https://example.com'"
 
   spec.metadata["homepage_uri"] = spec.homepage
 
