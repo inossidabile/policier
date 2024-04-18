@@ -6,3 +6,15 @@ require "policier"
 require "minitest/autorun"
 require "active_record"
 require "pry"
+
+class PolicierSpec < Minitest::Spec
+  def before_setup
+    Policier::Context.start
+    super
+  end
+
+  def after_teardown
+    super
+    Policier::Context.cleanup
+  end
+end

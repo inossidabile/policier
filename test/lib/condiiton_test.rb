@@ -3,11 +3,11 @@
 require "test_helper"
 
 module Policier
-  class ConditionTest < Minitest::Spec
+  class ConditionTest < PolicierSpec
     class ConditionA < Condition
       self.data_class = Struct.new(:foo, :bar)
 
-      verify_with do
+      verify_with :test do
         fail! unless payload.key?(:foo)
       end
 
@@ -21,7 +21,7 @@ module Policier
     end
 
     class ConditionB < Condition
-      verify_with do
+      verify_with :test do
         depend_on! ConditionA
       end
     end
@@ -32,7 +32,7 @@ module Policier
 
     describe "without ensure" do
       def test_successful_condition
-        Context.scope({ foo: "bar", bar: :baz }) do
+        Context.scope test: true, foo: "bar", bar: :baz do
           condition = ConditionA.new
 
           assert condition.verify
@@ -43,7 +43,7 @@ module Policier
       end
 
       def test_failed_condition
-        Context.scope({}) do
+        Context.scope test: true do
           condition = ConditionA.new
 
           assert condition.verify
@@ -56,7 +56,7 @@ module Policier
 
     describe "with one ensure" do
       def test_successful_condition
-        Context.scope foo: "bar", bar: :baz do
+        Context.scope test: true, foo: "bar", bar: :baz do
           condition = ConditionA.new
 
           assert condition.verify.and_has_bar(bar: "foo")
@@ -67,7 +67,7 @@ module Policier
       end
 
       def test_failed_condition
-        Context.scope({}) do
+        Context.scope test: true do
           condition = ConditionA.new
 
           assert condition.verify.and_has_bar({})
@@ -78,7 +78,7 @@ module Policier
       end
 
       def test_failed_condition_on_dependent
-        Context.scope({}) do
+        Context.scope test: true do
           condition = ConditionB.new
 
           assert condition.verify
@@ -90,7 +90,7 @@ module Policier
 
     describe "with two ensure" do
       def test_successful_condition
-        Context.scope({ foo: "bar", bar: :baz }) do
+        Context.scope test: true, foo: "bar", bar: :baz do
           condition = ConditionA.new
 
           assert condition.verify.and_has_bar(bar: "foo").and_has_baz(baz: "foo")
@@ -101,7 +101,7 @@ module Policier
       end
 
       def test_failed_condition
-        Context.scope({}) do
+        Context.scope test: true do
           condition = ConditionA.new
 
           assert condition.verify.and_has_bar({})
@@ -112,7 +112,7 @@ module Policier
       end
 
       def test_failed_condition_on_second_step
-        Context.scope({}) do
+        Context.scope test: true do
           condition = ConditionA.new
 
           assert condition.verify.and_has_bar({}).and_has_baz(baz: "foo")
@@ -123,7 +123,7 @@ module Policier
       end
 
       def test_failed_condition_on_third_step
-        Context.scope({}) do
+        Context.scope test: true do
           condition = ConditionA.new
 
           assert condition.verify.and_has_bar(bar: "foo").and_has_baz({})

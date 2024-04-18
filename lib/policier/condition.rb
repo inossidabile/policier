@@ -21,6 +21,7 @@ module Policier
 
   class Condition
     class FailedException < StandardError; end
+    class InsuficientPayload < StandardError; end
 
     extend ConditionResolve
 
@@ -56,9 +57,15 @@ module Policier
       @failed
     end
 
+    def validate_payload!
+      missing = self.class.required_keys.reject { |f| payload.key?(f) }
+      raise InsuficientPayload, missing.inspect if missing.any?
+    end
+
     def verify
       return self if @executed
 
+      validate_payload!
       @failed ||= !instance_exec_with_failures(&self.class.verification_block)
       @executed = true
       self
@@ -83,10 +90,11 @@ module Policier
     end
 
     class << self
-      attr_reader :verification_block
+      attr_reader :verification_block, :required_keys
       attr_accessor :collector
 
-      def verify_with(&block)
+      def verify_with(*required_keys, &block)
+        @required_keys = required_keys.map(&:to_sym)
         @verification_block = block
       end
 

@@ -3,7 +3,7 @@
 require "test_helper"
 
 module Policier
-  class RunnerTest < Minitest::Spec
+  class RunnerTest < PolicierSpec
     class Model < ActiveRecord::Base; end
 
     before do
@@ -20,7 +20,7 @@ module Policier
     end
 
     def test_scope_union_merging
-      Context.scope({}) do
+      Context.scope do
         scope_union = ScopeUnion.new(Model)
         scope_union.scope Model.where(foo: "foo")
         scope_union.scope Model.where(bar: "bar")

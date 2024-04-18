@@ -3,25 +3,25 @@
 require "test_helper"
 
 module Policier
-  class RunnerTest < Minitest::Spec
+  class RunnerTest < PolicierSpec
     class SubjectA < Condition
       self.collector = Struct.new(:foo, :bar)
 
-      verify_with do |_context|
+      verify_with :test do |_context|
       end
     end
 
     class SubjectB < Condition
       self.collector = Struct.new(:foo, :bar)
 
-      verify_with do |_context|
+      verify_with :test do |_context|
       end
     end
 
     class SubjectC < Condition
       self.collector = Struct.new(:foo, :bar, :baz)
 
-      verify_with do |_context|
+      verify_with :test do |_context|
         fail!
       end
     end

@@ -3,25 +3,25 @@
 require "test_helper"
 
 module Policier
-  class PolicyTest < Minitest::Spec
+  class PolicyTest < PolicierSpec
     class ConditionA < Condition
       self.data_class = Struct.new(:history)
 
-      verify_with do
+      verify_with :test do
       end
     end
 
     class ConditionB < Condition
       self.data_class = Struct.new(:history)
 
-      verify_with do
+      verify_with :test do
       end
     end
 
     class ConditionC < Condition
       self.data_class = Struct.new(:history)
 
-      verify_with do
+      verify_with :test do
         fail!
       end
     end
@@ -46,7 +46,7 @@ module Policier
 
     def test_policy_arithmetics
       history = []
-      Context.scope({ history: history }) do
+      Context.scope test: true, history: history do
         PolicyA.run
 
         _(history.map(&:class)).must_equal([ConditionA, ConditionB, ConditionA, ConditionB])

@@ -2,6 +2,7 @@
 # frozen_string_literal: tue
 
 require_relative "policier/version"
+require_relative "policier/stack"
 require_relative "policier/context"
 require_relative "policier/policy"
 require_relative "policier/runner"
