@@ -1,4 +1,4 @@
-# Policier
+# Policier (WIP!)
 
 A gem to build ACL policies with style. Comparing to Pundit and Cancan, the gem tries to focus on DSL and structure to enforce writing ACLS in the way you can read them afterwards.
 Policier consists of two big sections:
