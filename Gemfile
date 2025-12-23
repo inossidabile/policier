@@ -15,4 +15,6 @@ gem "pry", "~> 0.14.2"
 
 gem "activerecord", "~> 7.1"
 
+gem "actionpack", "~> 7.1"
+
 gem "sqlite3", "~> 1.7"

@@ -1,113 +1,101 @@
 # frozen_string_literal: true
 
-require "dry/inflector"
-
-require_relative "condition_union"
+require_relative "expression"
 
 module Policier
-  module ConditionResolve
-    def resolve
-      Context.current.ensure_condiiton(self)
-    end
-
-    def union
-      resolve.union
-    end
-
-    def |(other)
-      union | other
-    end
-  end
-
   class Condition
-    class FailedException < StandardError; end
-    class InsuficientPayload < StandardError; end
+    class_attribute :verify_blocks
+    class_attribute :verify_with_block
 
-    extend ConditionResolve
-
-    class << self
-      attr_accessor :data_class
+    def self.resolve(policy)
+      policy.ensure_condition(self)
     end
 
-    attr_reader :data
-
-    def initialize
-      @context = Context.current
-      @data = @context.init_data(self.class, self.class.data_class) if self.class.data_class.present?
-      @failed = false
-      @executed = false
+    def self.evaluate(policy) # rubocop:disable Naming/PredicateMethod
+      resolve(policy).passed?
     end
 
-    def depend_on!(condition_klass)
-      condition = condition_klass.resolve
-      return fail! if condition.failed?
+    extend Expression::Methods
 
-      condition.data
+    def self.verify(name = :default, &block)
+      self.verify_blocks ||= {}
+      self.verify_blocks[name.to_sym] = block
     end
 
-    def fail!
-      raise FailedException
+    def self.verify_with(&block)
+      self.verify_with_block = block
     end
 
-    def payload
-      @context.payload
-    end
-
-    def failed?
-      @failed
-    end
-
-    def validate_payload!
-      missing = self.class.required_keys.reject { |f| payload.key?(f) }
-      raise InsuficientPayload, missing.inspect if missing.any?
-    end
-
-    def verify
-      return self if @executed
-
-      validate_payload!
-      @failed ||= !instance_exec_with_failures(&self.class.verification_block)
-      @executed = true
-      self
-    end
-
-    def override!(failing: false, data_replacement: {})
-      @failed = failing
-      @executed = true
-      data_replacement.each { |k, v| data[k] = v }
-      self
-    end
-
-    def instance_exec_with_failures(*args, &block)
-      instance_exec(*args, &block)
-      true
-    rescue FailedException
-      false
-    end
-
-    def union
-      ConditionUnion.new(self)
-    end
-
-    class << self
-      attr_reader :verification_block, :required_keys
-      attr_accessor :collector
-
-      def verify_with(*required_keys, &block)
-        @required_keys = required_keys.map(&:to_sym)
-        @verification_block = block
-      end
-
-      def also_ensure(name, &block)
-        define_method :"and_#{name}" do |data|
-          @failed ||= !instance_exec_with_failures(data, &block)
-          self
+    def self.[](verify_name)
+      Class.new(self) do
+        define_method :check! do
+          super(verify_name)
         end
       end
+    end
 
-      def handle
-        Dry::Inflector.new.underscore(name).gsub("/", "_").to_sym
+    def initialize(**kwargs)
+      kwargs.each do |k, v|
+        instance_variable_set("@#{k}", v)
       end
+
+      @passed = false
+      @finished = false
+    end
+
+    def and(other)
+      passed? && other
+    end
+
+    def or(other)
+      passed? || other
+    end
+
+    def check!(name = :default) # rubocop:disable Metrics/PerceivedComplexity,Metrics/CyclomaticComplexity
+      return self if @finished
+
+      if self.class.verify_blocks&.key?(name.to_sym)
+        instance_exec(name, &self.class.verify_blocks[name.to_sym])
+      elsif self.class.verify_with_block
+        instance_exec(name, &self.class.verify_with_block)
+      end
+      if name != :default && self.class.verify_blocks&.key?(:default)
+        instance_exec(name,
+                      &self.class.verify_blocks[:default])
+      end
+      @finished = true
+
+      self
+    end
+
+    def pass!
+      return if @finished
+
+      @passed = true
+      @finished = true
+    end
+
+    def deny!
+      return if @finished
+
+      @passed = false
+      @finished = true
+    end
+
+    def pass
+      return if @finished
+
+      @passed = true
+    end
+
+    def passed?
+      check! unless @finished
+
+      @passed
+    end
+
+    def denied?
+      !passed?
     end
   end
 end
